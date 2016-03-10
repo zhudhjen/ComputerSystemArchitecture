@@ -40,3 +40,9 @@ impact_impact.xwbt
 Thumbs.db
 .DS_Store
 
+*.*
+!.gitignore
+!*.md
+!*.v
+!*.hex
+!*.ucf
