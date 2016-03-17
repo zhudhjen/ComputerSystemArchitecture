@@ -44,6 +44,7 @@ Thumbs.db
 !.gitignore
 !*.md
 !*.v
+!*.vh
 !*.hex
 !*.xise
 !*.ucf
