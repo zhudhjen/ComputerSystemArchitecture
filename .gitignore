@@ -45,4 +45,5 @@ Thumbs.db
 !*.md
 !*.v
 !*.hex
+!*.xise
 !*.ucf
