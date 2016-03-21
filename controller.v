@@ -105,9 +105,17 @@ module controller (/*AUTOARG*/
 			INST_BEQ: begin
 				// Completed
 				pc_src = PC_BEQ;
-				exe_a_src = EXE_A_RS;
-				exe_b_src = EXE_B_RT;
-				exe_alu_oper = EXE_ALU_SUB;
+				exe_a_src = EXE_A_BRANCH;
+				exe_b_src = EXE_B_BRANCH;
+				exe_alu_oper = EXE_ALU_ADD;
+				imm_ext = 1;
+			end
+			INST_BNE: begin
+				// Completed
+				pc_src = PC_BNE;
+				exe_a_src = EXE_A_BRANCH;
+				exe_b_src = EXE_B_BRANCH;
+				exe_alu_oper = EXE_ALU_ADD;
 				imm_ext = 1;
 			end
 			INST_ADDI: begin
@@ -175,7 +183,7 @@ module controller (/*AUTOARG*/
 		end
 		`ifdef DEBUG
 		// suspend and step execution
-		else if ((debug_en) && ~(~debug_step_prev && debug_step)) begin
+		else if ((debug_en) && (~debug_step_prev && debug_step)) begin
 			cpu_en = 0;
 		end
 		`endif
