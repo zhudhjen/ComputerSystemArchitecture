@@ -25,7 +25,7 @@ module regfile (
 	);
 	
 	reg [31:0] regfile [1:31];  // $zero is always zero
-		
+	/*
 	// write
 	always @(posedge clk) begin
 		if (en_w && addr_w != 0)
@@ -33,12 +33,32 @@ module regfile (
 	end
 	
 	// read
-	assign data_a = (addr_a == 0) ? 0 : regfile[addr_a];
-	assign data_b = (addr_b == 0) ? 0 : regfile[addr_b];
+	always @(negedge clk) begin
+		data_a <= addr_a == 0 ? 0 : regfile[addr_a];
+		data_b <= addr_b == 0 ? 0 : regfile[addr_b];
+	end
+	
+	// debug
+	`ifdef DEBUG
+	always @(negedge clk) begin
+		debug_data <= debug_addr == 0 ? 0 : regfile[debug_addr];
+	end
+	`endif
+	*/
+	
+	// write
+	always @(negedge clk) begin
+		if (en_w && addr_w != 0)
+			regfile[addr_w] <= data_w;
+	end
+	
+	// read
 //	always @(*) begin
 //		data_a = addr_a == 0 ? 0 : regfile[addr_a];
 //		data_b = addr_b == 0 ? 0 : regfile[addr_b];
 //	end
+	assign data_a = (addr_a == 0) ? 0 : regfile[addr_a];
+	assign data_b = (addr_b == 0) ? 0 : regfile[addr_b];
 	
 	// debug
 	`ifdef DEBUG

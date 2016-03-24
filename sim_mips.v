@@ -27,9 +27,9 @@ module sim_mips;
 	
 	initial begin
 		// Initialize Inputs
-		debug_en = 1;
+		debug_en = 0;
 		debug_step = 0;
-		debug_addr = 6'b100000;
+		debug_addr = 0;
 		clk = 0;
 		rst = 0;
 		interrupter = 0;
