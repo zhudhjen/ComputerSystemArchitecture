@@ -59,9 +59,9 @@ module datapath (
 	input wire wb_en,
 	output reg wb_valid
 	);
-	
+
 	`include "mips_define.vh"
-	
+
 	// control signals
 	reg [2:0] pc_src_exe, pc_src_mem;
 	reg [1:0] exe_a_src_exe, exe_b_src_exe;
@@ -69,17 +69,17 @@ module datapath (
 	reg mem_ren_exe, mem_ren_mem;
 	reg mem_wen_exe, mem_wen_mem;
 	reg wb_data_src_exe, wb_data_src_mem, wb_data_src_wb;
-	
+
 	// IF signals
 	wire [31:0] inst_addr_next;
-	
+
 	// ID signals
 	reg [31:0] inst_addr_id;
 	reg [31:0] inst_addr_next_id;
 	reg [4:0] regw_addr_id;
 	wire [4:0] addr_rs, addr_rt, addr_rd;
 	wire [31:0] data_rs, data_rt, data_imm;
-	
+
 	// EXE signals
 	reg [31:0] inst_addr_exe;
 	reg [31:0] inst_addr_next_exe;
@@ -88,7 +88,7 @@ module datapath (
 	reg [31:0] opa_exe, opb_exe;
 	wire [31:0] alu_out_exe;
 	wire rs_rt_equal_exe;
-	
+
 	// MEM signals
 	reg [31:0] inst_addr_mem;
 	reg [31:0] inst_addr_next_mem;
@@ -98,19 +98,19 @@ module datapath (
 	reg [31:0] alu_out_mem;
 	reg [31:0] branch_target_mem;
 	reg rs_rt_equal_mem;
-	
+
 	// WB signals
 	reg wb_wen_wb;
 	reg [31:0] alu_out_wb;
 	reg [31:0] mem_din_wb;
 	reg [4:0] regw_addr_wb;
 	reg [31:0] regw_data_wb;
-	
+
 	// debug
 	`ifdef DEBUG
 	wire [31:0] debug_data_reg;
 	reg [31:0] debug_data_signal;
-	
+
 	always @(posedge clk) begin
 		case (debug_addr[4:0])
 			0: debug_data_signal <= inst_addr;
@@ -140,20 +140,20 @@ module datapath (
 			default: debug_data_signal <= 32'hFFFF_FFFF;
 		endcase
 	end
-	
+
 	assign
 		debug_data = debug_addr[5] ? debug_data_signal : debug_data_reg;
 	`endif
-	
+
 	// IF stage
 	assign
 		inst_addr_next = inst_addr + 4;
-	
+
 	always @(*) begin
 		if_valid = ~if_rst & if_en;
 		inst_ren = ~if_rst;
 	end
-	
+
 	always @(posedge clk) begin
 		if (if_rst) begin
 			inst_addr <= 0;
@@ -165,7 +165,7 @@ module datapath (
 				inst_addr <= inst_addr_next;
 		end
 	end
-	
+
 	// ID stage
 	always @(posedge clk) begin
 		if (id_rst) begin
@@ -181,22 +181,22 @@ module datapath (
 			inst_addr_next_id <= inst_addr_next;
 		end
 	end
-	
+
 	assign
 		addr_rs = inst_data_id[25:21],
 		addr_rt = inst_data_id[20:16],
 		addr_rd = inst_data_id[15:11],
 		data_imm = imm_ext_ctrl ? {{16{inst_data_id[15]}}, inst_data_id[15:0]} : {16'b0, inst_data_id[15:0]};
-	
+
 	always @(*) begin
 		regw_addr_id = inst_data_id[15:11];
 		case (wb_addr_src_ctrl)
-			WB_ADDR_RD: regw_addr_id = ???;
-			WB_ADDR_RT: regw_addr_id = ???;
+			WB_ADDR_RD: regw_addr_id = inst_data_ctrl[15:11];//???;
+			WB_ADDR_RT: regw_addr_id = inst_data_ctrl[20:16];//???;
 			WB_ADDR_LINK: regw_addr_id = ???;
 		endcase
 	end
-	
+
 	regfile REGFILE (
 		.clk(clk),
 		`ifdef DEBUG
@@ -211,7 +211,7 @@ module datapath (
 		.addr_w(regw_addr_wb),
 		.data_w(regw_data_wb)
 		);
-	
+
 	// EXE stage
 	always @(posedge clk) begin
 		if (exe_rst) begin
@@ -251,14 +251,14 @@ module datapath (
 			wb_wen_exe <= wb_wen_ctrl;
 		end
 	end
-	
+
 	always @(*) begin
 		is_branch_exe <= (pc_src_exe != PC_NEXT);
 	end
-	
+
 	assign
 		rs_rt_equal_exe = (data_rs_exe == data_rt_exe);
-	
+
 	always @(*) begin
 		opa_exe = data_rs_exe;
 		opb_exe = data_rt_exe;
@@ -274,14 +274,14 @@ module datapath (
 			EXE_B_BRANCH: opb_exe = ???;
 		endcase
 	end
-	
+
 	alu ALU (
 		.a(opa_exe),
 		.b(opb_exe),
 		.oper(exe_alu_oper_exe),
 		.result(alu_out_exe)
 		);
-	
+
 	// MEM stage
 	always @(posedge clk) begin
 		if (mem_rst) begin
@@ -317,11 +317,11 @@ module datapath (
 			rs_rt_equal_mem <= rs_rt_equal_exe;
 		end
 	end
-	
+
 	always @(*) begin
 		is_branch_mem <= (pc_src_mem != PC_NEXT);
 	end
-	
+
 	always @(*) begin
 		case (pc_src_mem)
 			PC_JUMP: branch_target_mem <= ???;
@@ -331,13 +331,13 @@ module datapath (
 			default: branch_target_mem <= inst_addr_next_mem;  // will never used
 		endcase
 	end
-	
+
 	assign
 		mem_ren = mem_ren_mem,
 		mem_wen = mem_wen_mem,
 		mem_addr = alu_out_mem,
 		mem_dout = data_rt_mem;
-	
+
 	// WB stage
 	always @(posedge clk) begin
 		if (wb_rst) begin
@@ -357,7 +357,7 @@ module datapath (
 			mem_din_wb <= mem_din;
 		end
 	end
-	
+
 	always @(*) begin
 		regw_data_wb = alu_out_wb;
 		case (wb_data_src_wb)
@@ -365,5 +365,5 @@ module datapath (
 			WB_DATA_MEM: regw_data_wb = ???;
 		endcase
 	end
-	
+
 endmodule

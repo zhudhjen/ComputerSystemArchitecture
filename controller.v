@@ -49,12 +49,12 @@ module controller (/*AUTOARG*/
 	output reg wb_en,
 	input wire wb_valid
 	);
-	
+
 	`include "mips_define.vh"
-	
+
 	// instruction decode
 	reg rs_used, rt_used;
-	
+
 	always @(*) begin
 		pc_src = PC_NEXT;
 		imm_ext = 0;
@@ -85,36 +85,36 @@ module controller (/*AUTOARG*/
 						rt_used = 1;
 					end
 					R_FUNC_SUB: begin
-						exe_alu_oper = ???;
-						wb_addr_src = ???;
-						wb_data_src = ???;
-						wb_wen = ???;
-						rs_used = ???;
-						rt_used = ???;
+						exe_alu_oper = EXE_ALU_SUB;
+						wb_addr_src = WB_ADDR_RD
+						wb_data_src = WB_DATA_ALU
+						wb_wen = 1;
+						rs_used = 1;
+						rt_used = 1;
 					end
 					R_FUNC_AND: begin
-						exe_alu_oper = ???;
-						wb_addr_src = ???;
-						wb_data_src = ???;
-						wb_wen = ???;
-						rs_used = ???;
-						rt_used = ???;
+						exe_alu_oper = EXE_ALU_AND;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 1;
+						rt_used = 1;
 					end
 					R_FUNC_OR: begin
-						exe_alu_oper = ???;
-						wb_addr_src = ???;
-						wb_data_src = ???;
-						wb_wen = ???;
-						rs_used = ???;
-						rt_used = ???;
+						exe_alu_oper = EXE_ALU_OR;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 1;
+						rt_used = 1;
 					end
 					R_FUNC_SLT: begin
-						exe_alu_oper = ???;
+						exe_alu_oper = EXE_ALU_SLT;
 						wb_addr_src = ???;
 						wb_data_src = ???;
-						wb_wen = ???;
-						rs_used = ???;
-						rt_used = ???;
+						wb_wen = 0;
+						rs_used = 1;
+						rt_used = 1;
 					end
 					default: begin
 						unrecognized = 1;
@@ -134,13 +134,13 @@ module controller (/*AUTOARG*/
 				wb_wen = 1;
 			end
 			INST_BEQ: begin
-				pc_src = ???;
+				pc_src = EXE_B_IMM;
 				exe_a_src = ???;
 				exe_b_src = ???;
 				exe_alu_oper = ???;
-				imm_ext = ???;
-				rs_used = ???;
-				rt_used = ???;
+				imm_ext = 1;
+				rs_used = 1;
+				rt_used = 1;
 			end
 			INST_BNE: begin
 				pc_src = ???;
@@ -179,38 +179,38 @@ module controller (/*AUTOARG*/
 				rs_used = ???;
 			end
 			INST_LW: begin
-				imm_ext = ???;
-				exe_b_src = ???;
-				exe_alu_oper = ???;
-				mem_ren = ???;
-				wb_addr_src = ???;
-				wb_data_src = ???;
-				wb_wen = ???;
-				rs_used = ???;
+				imm_ext = 1;
+				exe_b_src = EXE_B_IMM;
+				exe_alu_oper = EXE_ALU_ADD;
+				mem_ren = 1;
+				wb_addr_src = WB_ADDR_RT;
+				wb_data_src = WB_DATA_MEM;
+				wb_wen = 1;
+				rs_used = 1;
 			end
 			INST_SW: begin
-				imm_ext = ???;
-				exe_b_src = ???;
-				exe_alu_oper = ???;
-				mem_wen = ???;
-				rs_used = ???;
-				rt_used = ???;
+				imm_ext = 1;
+				exe_b_src = EXE_B_IMM;
+				exe_alu_oper = EXE_ALU_ADD;
+				mem_wen = 1;
+				rs_used = 1;
+				rt_used = 1;
 			end
 			default: begin
 				unrecognized = 1;
 			end
 		endcase
 	end
-	
+
 	// pipeline control
 	reg reg_stall;
 	reg branch_stall;
 	wire [4:0] addr_rs, addr_rt;
-	
+
 	assign
 		addr_rs = inst[25:21],
 		addr_rt = inst[20:16];
-	
+
 	always @(*) begin
 		reg_stall = 0;
 		if (rs_used && addr_rs != 0) begin
@@ -230,21 +230,21 @@ module controller (/*AUTOARG*/
 			end
 		end
 	end
-	
+
 	always @(*) begin
 		branch_stall = 0;
 		if (pc_src != PC_NEXT || ??? || ???)
 			branch_stall = 1;
 	end
-	
+
 	`ifdef DEBUG
 	reg debug_step_prev;
-	
+
 	always @(posedge clk) begin
 		debug_step_prev <= debug_step;
 	end
 	`endif
-	
+
 	always @(*) begin
 		if_rst = 0;
 		if_en = 1;
@@ -284,5 +284,5 @@ module controller (/*AUTOARG*/
 			id_rst = 1;
 		end
 	end
-	
+
 endmodule
