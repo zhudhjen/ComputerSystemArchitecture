@@ -125,31 +125,31 @@ module controller (/*AUTOARG*/
 				pc_src = PC_JUMP;
 			end
 			INST_JAL: begin
-				pc_src = ???;
-				exe_a_src = ???;
-				exe_b_src = ???;
-				exe_alu_oper = ???;
-				wb_addr_src = ???;
-				wb_data_src = ???;
+				pc_src = PC_JUMP;
+				exe_a_src = EXE_A_LINK;
+				exe_b_src = EXE_B_LINK;
+				exe_alu_oper = EXE_ALU_ADD;
+				wb_addr_src = WB_ADDR_LINK;
+				wb_data_src = WB_DATA_ALU;
 				wb_wen = 1;
 			end
 			INST_BEQ: begin
-				pc_src = EXE_B_IMM;
-				exe_a_src = ???;
-				exe_b_src = ???;
-				exe_alu_oper = ???;
+				pc_src = PC_BEQ;
+				exe_a_src = EXE_A_BRANCH;
+				exe_b_src = EXE_B_BRANCH;
+				exe_alu_oper = EXE_ALU_ADD;
 				imm_ext = 1;
 				rs_used = 1;
 				rt_used = 1;
 			end
 			INST_BNE: begin
-				pc_src = ???;
-				exe_a_src = ???;
-				exe_b_src = ???;
-				exe_alu_oper = ???;
-				imm_ext = ???;
-				rs_used = ???;
-				rt_used = ???;
+				pc_src = PC_BNE;
+				exe_a_src = EXE_A_BRANCH;
+				exe_b_src = EXE_B_BRANCH;
+				exe_alu_oper = EXE_ALU_ADD;
+				imm_ext = 1;
+				rs_used = 1;
+				rt_used = 1;
 			end
 			INST_ADDI: begin
 				imm_ext = 1;
@@ -170,13 +170,13 @@ module controller (/*AUTOARG*/
 				rs_used = ???;
 			end
 			INST_ORI: begin
-				imm_ext = ???;
-				exe_b_src = ???;
-				exe_alu_oper = ???;
-				wb_addr_src = ???;
-				wb_data_src = ???;
-				wb_wen = ???;
-				rs_used = ???;
+				imm_ext = 0;
+				exe_b_src = EXE_B_IMM;
+				exe_alu_oper = EXE_ALU_OR;
+				wb_addr_src = WB_ADDR_RT;
+				wb_data_src = WB_DATA_ALU;
+				wb_wen = 1;
+				rs_used = 1;
 			end
 			INST_LW: begin
 				imm_ext = 1;
