@@ -86,8 +86,8 @@ module controller (/*AUTOARG*/
 					end
 					R_FUNC_SUB: begin
 						exe_alu_oper = EXE_ALU_SUB;
-						wb_addr_src = WB_ADDR_RD
-						wb_data_src = WB_DATA_ALU
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
 						wb_wen = 1;
 						rs_used = 1;
 						rt_used = 1;
@@ -110,9 +110,9 @@ module controller (/*AUTOARG*/
 					end
 					R_FUNC_SLT: begin
 						exe_alu_oper = EXE_ALU_SLT;
-						wb_addr_src = ???;
-						wb_data_src = ???;
-						wb_wen = 0;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
 						rs_used = 1;
 						rt_used = 1;
 					end
@@ -161,13 +161,14 @@ module controller (/*AUTOARG*/
 				rs_used = 1;
 			end
 			INST_ANDI: begin
-				imm_ext = ???;
-				exe_b_src = ???;
-				exe_alu_oper = ???;
-				wb_addr_src = ???;
-				wb_data_src = ???;
-				wb_wen = ???;
-				rs_used = ???;
+				imm_ext = 0;
+				exe_a_src = EXE_A_RS;
+				exe_b_src = EXE_B_IMM;
+				exe_alu_oper = EXE_ALU_AND;
+				wb_addr_src = WB_ADDR_RT;
+				wb_data_src = WB_DATA_ALU;
+				wb_wen = 1;
+				rs_used = 1;
 			end
 			INST_ORI: begin
 				imm_ext = 0;
@@ -217,23 +218,23 @@ module controller (/*AUTOARG*/
 			if (regw_addr_exe == addr_rs && wb_wen_exe) begin
 				reg_stall = 1;
 			end
-			else if (??? == addr_rs && ???) begin
+			else if (regw_addr_mem == addr_rs && wb_wen_mem) begin
 				reg_stall = 1;
 			end
 		end
-		if (??? && ??? != 0) begin
-			if (??? == ??? && ???) begin
+		if (rt_used && addr_rt != 0) begin
+			if (regw_addr_exe == addr_rt && wb_wen_exe) begin
 				reg_stall = 1;
 			end
-			else if (??? == ??? && ???) begin
-				reg_stall = 1;
+			else if (regw_addr_mem == addr_rt && wb_wen_mem) begin
+				reg_stall = 1; 
 			end
 		end
 	end
 
 	always @(*) begin
 		branch_stall = 0;
-		if (pc_src != PC_NEXT || ??? || ???)
+		if (pc_src != PC_NEXT || is_branch_exe || is_branch_mem)
 			branch_stall = 1;
 	end
 

@@ -271,7 +271,7 @@ module datapath (
 			EXE_B_RT: opb_exe = data_rt_exe;
 			EXE_B_IMM: opb_exe = data_imm_exe;
 			EXE_B_LINK: opb_exe = 32'h0;  // linked address is the next one of current instruction
-			EXE_B_BRANCH: opb_exe = {data_imm_exe[29:0], 2'b0}
+			EXE_B_BRANCH: opb_exe = {data_imm_exe[29:0], 2'b00};
 		endcase
 	end
 
@@ -326,8 +326,8 @@ module datapath (
 		case (pc_src_mem)
 			PC_JUMP: branch_target_mem <= {inst_addr_mem[31:28], inst_data_mem[25:0], 2'b0};
 			PC_JR: branch_target_mem <= data_rs_mem;
-			PC_BEQ: branch_target_mem <= alu_out_mem;
-			PC_BNE: branch_target_mem <= alu_out_mem;
+			PC_BEQ: branch_target_mem <= rs_rt_equal_mem ? alu_out_mem : inst_addr_next_mem;
+			PC_BNE: branch_target_mem <= rs_rt_equal_mem ? inst_addr_next_mem : alu_out_mem;
 			default: branch_target_mem <= inst_addr_next_mem;  // will never used
 		endcase
 	end
