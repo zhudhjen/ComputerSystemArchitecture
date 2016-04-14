@@ -44,6 +44,13 @@ localparam
 	WB_DATA_ALU   = 0,
 	WB_DATA_MEM   = 1;
 
+// forwarding 
+localparam
+	FWD_NO = 0,
+	FWD_ALU_EXE = 1,
+	FWD_WB_MEM  = 2,
+	FWD_MEM 	= 3;
+
 // variables
 localparam
 	PC_RESET  = 32'h0000_0000;

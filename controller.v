@@ -47,7 +47,13 @@ module controller (/*AUTOARG*/
 	input wire mem_valid,
 	output reg wb_rst,
 	output reg wb_en,
-	input wire wb_valid
+	input wire wb_valid,
+	
+	// forwarding
+	input wire wb_data_src_exe,
+	input wire wb_data_src_mem,
+	output reg [1:0]exe_fwd_a_ctrl,
+	output reg [1:0]exe_fwd_b_ctrl
 	);
 
 	`include "mips_define.vh"
@@ -214,20 +220,34 @@ module controller (/*AUTOARG*/
 
 	always @(*) begin
 		reg_stall = 0;
+		exe_fwd_a_ctrl = FWD_NO;
+		exe_fwd_b_ctrl = FWD_NO;
 		if (rs_used && addr_rs != 0) begin
 			if (regw_addr_exe == addr_rs && wb_wen_exe) begin
-				reg_stall = 1;
+				case (wb_data_src_exe)
+					WB_DATA_ALU: exe_fwd_a_ctrl = FWD_ALU_EXE;
+					WB_DATA_MEM: begin
+						exe_fwd_a_ctrl = FWD_MEM;
+						reg_stall = 1;
+					end
+				endcase
 			end
 			else if (regw_addr_mem == addr_rs && wb_wen_mem) begin
-				reg_stall = 1;
+				exe_fwd_a_ctrl = FWD_WB_MEM;
 			end
 		end
 		if (rt_used && addr_rt != 0) begin
 			if (regw_addr_exe == addr_rt && wb_wen_exe) begin
-				reg_stall = 1;
+				case (wb_data_src_exe)
+					WB_DATA_ALU: exe_fwd_b_ctrl = FWD_ALU_EXE;
+					WB_DATA_MEM: begin
+						exe_fwd_b_ctrl = FWD_MEM;
+						reg_stall = 1;
+					end
+				endcase
 			end
 			else if (regw_addr_mem == addr_rt && wb_wen_mem) begin
-				reg_stall = 1; 
+				exe_fwd_b_ctrl = FWD_WB_MEM;
 			end
 		end
 	end
