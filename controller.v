@@ -226,10 +226,7 @@ module controller (/*AUTOARG*/
 			if (regw_addr_exe == addr_rs && wb_wen_exe) begin
 				case (wb_data_src_exe)
 					WB_DATA_ALU: exe_fwd_a_ctrl = FWD_ALU_EXE;
-					WB_DATA_MEM: begin
-						exe_fwd_a_ctrl = FWD_MEM;
-						reg_stall = 1;
-					end
+					WB_DATA_MEM: exe_fwd_a_ctrl = FWD_MEM;
 				endcase
 			end
 			else if (regw_addr_mem == addr_rs && wb_wen_mem) begin
@@ -240,10 +237,7 @@ module controller (/*AUTOARG*/
 			if (regw_addr_exe == addr_rt && wb_wen_exe) begin
 				case (wb_data_src_exe)
 					WB_DATA_ALU: exe_fwd_b_ctrl = FWD_ALU_EXE;
-					WB_DATA_MEM: begin
-						exe_fwd_b_ctrl = FWD_MEM;
-						reg_stall = 1;
-					end
+					WB_DATA_MEM: exe_fwd_b_ctrl = FWD_MEM;
 				endcase
 			end
 			else if (regw_addr_mem == addr_rt && wb_wen_mem) begin
