@@ -16,7 +16,7 @@ module sim_mips;
 	
 	// Instantiate the Unit Under Test (UUT)
 	mips uut (
-		.debug_en(debug_en), 
+		.debug_en(debug_en),
 		.debug_step(debug_step), 
 		.debug_addr(debug_addr), 
 		.debug_data(debug_data), 

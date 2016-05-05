@@ -181,8 +181,8 @@ module datapath (
 			case (pc_src_ctrl)
 				PC_JUMP: inst_addr <= {inst_addr_next_id[31:28], inst_data_id[25:0], 2'b0};
 				PC_JR: inst_addr <= data_rs_fwd;
-				PC_BRANCH:inst_addr <=inst_addr_next_id + {data_imm[29:0], 2'b0};
-				PC_NEXT: inst_addr <= inst_addr_next;  // will never used
+				PC_BRANCH:inst_addr <= inst_addr_next_id + {data_imm[29:0], 2'b0};
+				PC_NEXT: inst_addr <= inst_addr_next;  
 			endcase
 		end
 	end
@@ -285,19 +285,19 @@ module datapath (
 
 
 	always @(*) begin
-			case(exe_fwd_a_ctrl)
-				FWD_NO:		 	data_rs_fwd<=data_rs;
-				FWD_ALU_EXE:	data_rs_fwd<=alu_out_exe;
-				FWD_ALU_MEM:	data_rs_fwd<=alu_out_mem;
-				FWD_MEM: 		data_rs_fwd<=mem_din;
-			endcase
+		case(exe_fwd_a_ctrl)
+			FWD_NO:		 	data_rs_fwd<=data_rs;
+			FWD_ALU_EXE:	data_rs_fwd<=alu_out_exe;
+			FWD_ALU_MEM:	data_rs_fwd<=alu_out_mem;
+			FWD_MEM: 		data_rs_fwd<=mem_din;
+		endcase
 
-			case(exe_fwd_b_ctrl)
-				FWD_NO:		 	data_rt_fwd<=data_rt;
-				FWD_ALU_EXE:	data_rt_fwd<=alu_out_exe;
-				FWD_ALU_MEM:	data_rt_fwd<=alu_out_mem;
-				FWD_MEM: 		data_rt_fwd<=mem_din;
-			endcase
+		case(exe_fwd_b_ctrl)
+			FWD_NO:		 	data_rt_fwd<=data_rt;
+			FWD_ALU_EXE:	data_rt_fwd<=alu_out_exe;
+			FWD_ALU_MEM:	data_rt_fwd<=alu_out_mem;
+			FWD_MEM: 		data_rt_fwd<=mem_din;
+		endcase
 	end
 	assign rs_rt_equal = (data_rs_fwd==data_rt_fwd);
 	always @(*) begin
@@ -319,7 +319,7 @@ module datapath (
 		case (exe_b_src_exe)
 			EXE_B_RT: opb_exe = data_rt_exe;
 			EXE_B_IMM: opb_exe = data_imm_exe;
-			EXE_B_LINK: opb_exe = 32'h0;  // linked address is the next one of current instruction
+			EXE_B_LINK: opb_exe = 32'h4;  // linked address is the next one of current instruction
 			EXE_B_BRANCH: opb_exe = {data_imm_exe,2'b00};
 		endcase
 	end
@@ -373,16 +373,16 @@ module datapath (
 		is_branch_mem <= (pc_src_mem != PC_NEXT);
 	end
 	
-	always @(*) begin
-		case (pc_src_ctrl)
-			PC_JUMP: branch_target_mem <= {inst_addr_next_mem[31:28], inst_data_mem[25:0], 2'b0};
-			PC_JR: branch_target_mem <= data_rs_mem;
-			// PC_BEQ: branch_target_mem <= rs_rt_equal_mem ? alu_out_mem : inst_addr_next_mem;
-			// PC_BNE: branch_target_mem <= rs_rt_equal_mem ? inst_addr_next_mem : alu_out_mem;
-			PC_BRANCH:branch_target_mem <=alu_out_mem;
-			default: branch_target_mem <= inst_addr_next_mem;  // will never used
-		endcase
-	end
+	// always @(*) begin
+	// 	case (pc_src_ctrl)
+	// 		PC_JUMP: branch_target_mem <= {inst_addr_next_mem[31:28], inst_data_mem[25:0], 2'b0};
+	// 		PC_JR: branch_target_mem <= data_rs_mem;
+	// 		// PC_BEQ: branch_target_mem <= rs_rt_equal_mem ? alu_out_mem : inst_addr_next_mem;
+	// 		// PC_BNE: branch_target_mem <= rs_rt_equal_mem ? inst_addr_next_mem : alu_out_mem;
+	// 		PC_BRANCH:branch_target_mem <=alu_out_mem;
+	// 		default: branch_target_mem <= inst_addr_next_mem;  // will never used
+	// 	endcase
+	// end
 	
 	assign
 		mem_ren = mem_ren_mem,

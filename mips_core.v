@@ -50,14 +50,11 @@ module mips_core (
 	wire mem_rst, mem_en, mem_valid;
 	wire wb_rst, wb_en, wb_valid;
 	
-	wire wb_data_src_exe;
-	wire wb_data_src_mem;
+	wire wb_data_src_exe,wb_data_src_mem;
 	wire [1:0] exe_fwd_a_ctrl;
 	wire [1:0] exe_fwd_b_ctrl;
-	
 	wire fwd_m;
 	wire rs_rt_equal;
-	
 	// controller
 	controller CONTROLLER (
 		.clk(clk),
@@ -98,13 +95,12 @@ module mips_core (
 		.mem_valid(mem_valid),
 		.wb_rst(wb_rst),
 		.wb_en(wb_en),
-		.wb_valid(wb_valid),
-		
+		.wb_valid(wb_valid)
+		,
 		.wb_data_src_exe(wb_data_src_exe),
 		.wb_data_src_mem(wb_data_src_mem),
 		.exe_fwd_a_ctrl(exe_fwd_a_ctrl),
 		.exe_fwd_b_ctrl(exe_fwd_b_ctrl),
-		
 		.fwd_m(fwd_m),
 		.rs_rt_equal(rs_rt_equal)
 	);
@@ -155,13 +151,13 @@ module mips_core (
 		.mem_din(mem_din),
 		.wb_rst(wb_rst),
 		.wb_en(wb_en),
-		.wb_valid(wb_valid),
-		
+		.wb_valid(wb_valid)
+
+				,
 		.wb_data_src_exe(wb_data_src_exe),
 		.wb_data_src_mem(wb_data_src_mem),
 		.exe_fwd_a_ctrl(exe_fwd_a_ctrl),
 		.exe_fwd_b_ctrl(exe_fwd_b_ctrl),
-		
 		.fwd_m(fwd_m),
 		.rs_rt_equal(rs_rt_equal)
 	);

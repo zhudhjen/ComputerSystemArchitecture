@@ -212,7 +212,7 @@ module controller (/*AUTOARG*/
 	end
 	
 	// pipeline control
-	reg reg_stall;
+	reg load_stall;
 	reg branch_stall;
 	wire [4:0] addr_rs, addr_rt;
 	
@@ -221,16 +221,15 @@ module controller (/*AUTOARG*/
 		addr_rt = inst[20:16];
 	
 	always @(*) begin
-		reg_stall = 0;
+		load_stall = 0;
 		fwd_m=0;
 		exe_fwd_a_ctrl = FWD_NO;
 		exe_fwd_b_ctrl = FWD_NO;
 		if (rs_used && addr_rs != 0) begin
 			if (regw_addr_exe == addr_rs && wb_wen_exe) begin
-				// reg_stall = 1;
 				case (wb_data_src_exe)
 					WB_DATA_ALU: exe_fwd_a_ctrl = FWD_ALU_EXE;
-					WB_DATA_MEM: reg_stall=1;
+					WB_DATA_MEM: load_stall=1;
 				endcase
 			end
 			else if (regw_addr_mem == addr_rs && wb_wen_mem) begin
@@ -246,8 +245,8 @@ module controller (/*AUTOARG*/
 					WB_DATA_ALU: exe_fwd_b_ctrl = FWD_ALU_EXE;
 					WB_DATA_MEM: 
 					begin
-						reg_stall=~(inst[31:26]==INST_SW);
-						fwd_m=1;
+						load_stall = ~(inst[31:26]==INST_SW);
+						fwd_m = (inst[31:26]==INST_SW);
 					end 
 				endcase
 			end
@@ -304,7 +303,7 @@ module controller (/*AUTOARG*/
 		end
 		`endif
 		// this stall indicate that ID is waiting for previous instruction, should insert NOPs between ID and EXE.
-		else if (reg_stall) begin
+		else if (load_stall) begin
 			if_en = 0;
 			id_en = 0;
 			exe_rst = 1;
