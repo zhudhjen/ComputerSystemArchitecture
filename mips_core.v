@@ -55,6 +55,9 @@ module mips_core (
 	wire [1:0] exe_fwd_a_ctrl;
 	wire [1:0] exe_fwd_b_ctrl;
 	
+	wire fwd_m;
+	wire rs_rt_equal;
+	
 	// controller
 	controller CONTROLLER (
 		.clk(clk),
@@ -100,7 +103,10 @@ module mips_core (
 		.wb_data_src_exe(wb_data_src_exe),
 		.wb_data_src_mem(wb_data_src_mem),
 		.exe_fwd_a_ctrl(exe_fwd_a_ctrl),
-		.exe_fwd_b_ctrl(exe_fwd_b_ctrl)
+		.exe_fwd_b_ctrl(exe_fwd_b_ctrl),
+		
+		.fwd_m(fwd_m),
+		.rs_rt_equal(rs_rt_equal)
 	);
 	
 	// data path
@@ -154,7 +160,10 @@ module mips_core (
 		.wb_data_src_exe(wb_data_src_exe),
 		.wb_data_src_mem(wb_data_src_mem),
 		.exe_fwd_a_ctrl(exe_fwd_a_ctrl),
-		.exe_fwd_b_ctrl(exe_fwd_b_ctrl)
+		.exe_fwd_b_ctrl(exe_fwd_b_ctrl),
+		
+		.fwd_m(fwd_m),
+		.rs_rt_equal(rs_rt_equal)
 	);
 	
 endmodule

@@ -47,20 +47,23 @@ module controller (/*AUTOARG*/
 	input wire mem_valid,
 	output reg wb_rst,
 	output reg wb_en,
-	input wire wb_valid,
-	
-	// forwarding
+	input wire wb_valid
+
+	// added for forwarding
+	,
 	input wire wb_data_src_exe,
 	input wire wb_data_src_mem,
 	output reg [1:0]exe_fwd_a_ctrl,
-	output reg [1:0]exe_fwd_b_ctrl
+	output reg [1:0]exe_fwd_b_ctrl,
+	output reg fwd_m,
+	input wire rs_rt_equal
 	);
-
+	
 	`include "mips_define.vh"
-
+	
 	// instruction decode
 	reg rs_used, rt_used;
-
+	
 	always @(*) begin
 		pc_src = PC_NEXT;
 		imm_ext = 0;
@@ -140,7 +143,7 @@ module controller (/*AUTOARG*/
 				wb_wen = 1;
 			end
 			INST_BEQ: begin
-				pc_src = PC_BEQ;
+				pc_src = rs_rt_equal?PC_BRANCH:PC_NEXT;
 				exe_a_src = EXE_A_BRANCH;
 				exe_b_src = EXE_B_BRANCH;
 				exe_alu_oper = EXE_ALU_ADD;
@@ -149,7 +152,7 @@ module controller (/*AUTOARG*/
 				rt_used = 1;
 			end
 			INST_BNE: begin
-				pc_src = PC_BNE;
+				pc_src = rs_rt_equal?PC_NEXT:PC_BRANCH;
 				exe_a_src = EXE_A_BRANCH;
 				exe_b_src = EXE_B_BRANCH;
 				exe_alu_oper = EXE_ALU_ADD;
@@ -168,7 +171,6 @@ module controller (/*AUTOARG*/
 			end
 			INST_ANDI: begin
 				imm_ext = 0;
-				exe_a_src = EXE_A_RS;
 				exe_b_src = EXE_B_IMM;
 				exe_alu_oper = EXE_ALU_AND;
 				wb_addr_src = WB_ADDR_RT;
@@ -208,58 +210,71 @@ module controller (/*AUTOARG*/
 			end
 		endcase
 	end
-
+	
 	// pipeline control
 	reg reg_stall;
 	reg branch_stall;
 	wire [4:0] addr_rs, addr_rt;
-
+	
 	assign
 		addr_rs = inst[25:21],
 		addr_rt = inst[20:16];
-
+	
 	always @(*) begin
 		reg_stall = 0;
+		fwd_m=0;
 		exe_fwd_a_ctrl = FWD_NO;
 		exe_fwd_b_ctrl = FWD_NO;
 		if (rs_used && addr_rs != 0) begin
 			if (regw_addr_exe == addr_rs && wb_wen_exe) begin
+				// reg_stall = 1;
 				case (wb_data_src_exe)
 					WB_DATA_ALU: exe_fwd_a_ctrl = FWD_ALU_EXE;
-					WB_DATA_MEM: exe_fwd_a_ctrl = FWD_MEM;
+					WB_DATA_MEM: reg_stall=1;
 				endcase
 			end
 			else if (regw_addr_mem == addr_rs && wb_wen_mem) begin
-				exe_fwd_a_ctrl = FWD_WB_MEM;
+				case (wb_data_src_mem)
+					WB_DATA_ALU: exe_fwd_a_ctrl = FWD_ALU_MEM;
+					WB_DATA_MEM: exe_fwd_a_ctrl = FWD_MEM;
+				endcase
 			end
 		end
 		if (rt_used && addr_rt != 0) begin
 			if (regw_addr_exe == addr_rt && wb_wen_exe) begin
 				case (wb_data_src_exe)
 					WB_DATA_ALU: exe_fwd_b_ctrl = FWD_ALU_EXE;
-					WB_DATA_MEM: exe_fwd_b_ctrl = FWD_MEM;
+					WB_DATA_MEM: 
+					begin
+						reg_stall=~(inst[31:26]==INST_SW);
+						fwd_m=1;
+					end 
 				endcase
 			end
 			else if (regw_addr_mem == addr_rt && wb_wen_mem) begin
-				exe_fwd_b_ctrl = FWD_WB_MEM;
+				case (wb_data_src_mem)
+					WB_DATA_ALU: exe_fwd_b_ctrl = FWD_ALU_MEM;
+					WB_DATA_MEM: exe_fwd_b_ctrl = FWD_MEM;
+				endcase
+				// exe_fwd_b_ctrl = FWD_WB_MEM;
 			end
 		end
 	end
-
-	always @(*) begin
-		branch_stall = 0;
-		if (pc_src != PC_NEXT || is_branch_exe || is_branch_mem)
-			branch_stall = 1;
-	end
-
+	
+	// always @(*) begin
+	// 	branch_stall = 0;
+	// 	if (pc_src != PC_NEXT)
+	// 		branch_stall = 1;
+	// end
+	
 	`ifdef DEBUG
 	reg debug_step_prev;
-
+	
 	always @(posedge clk) begin
 		debug_step_prev <= debug_step;
 	end
 	`endif
-
+	
 	always @(*) begin
 		if_rst = 0;
 		if_en = 1;
@@ -299,5 +314,5 @@ module controller (/*AUTOARG*/
 			id_rst = 1;
 		end
 	end
-
+	
 endmodule

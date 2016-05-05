@@ -4,7 +4,8 @@ localparam
 	PC_JUMP    = 1,
 	PC_JR      = 2,
 	PC_BEQ     = 4,
-	PC_BNE     = 5;
+	PC_BNE     = 5,
+	PC_BRANCH  = 6;
 
 // EXE A sources
 localparam
@@ -46,10 +47,10 @@ localparam
 
 // forwarding 
 localparam
-	FWD_NO = 0,
+	FWD_NO 		= 0,
 	FWD_ALU_EXE = 1,
-	FWD_WB_MEM  = 2,
-	FWD_MEM 	= 3;
+	FWD_ALU_MEM = 2,
+	FWD_MEM 		= 3;
 
 // variables
 localparam

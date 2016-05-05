@@ -57,35 +57,41 @@ module datapath (
 	// WB signals
 	input wire wb_rst,
 	input wire wb_en,
-	output reg wb_valid,
-	
-	// forwarding
+	output reg wb_valid
+
+	,
 	output reg wb_data_src_exe,
 	output reg wb_data_src_mem,
 	input wire [1:0] exe_fwd_a_ctrl,
-	input wire [1:0] exe_fwd_b_ctrl
+	input wire [1:0] exe_fwd_b_ctrl,
+	input wire fwd_m,
+	output wire rs_rt_equal
+	// , output reg [31:0] regw_data_wb
+	
 	);
-
+	
 	`include "mips_define.vh"
-
+	
 	// control signals
 	reg [2:0] pc_src_exe, pc_src_mem;
 	reg [1:0] exe_a_src_exe, exe_b_src_exe;
 	reg [3:0] exe_alu_oper_exe;
+	reg fwd_m_exe,fwd_m_mem;
 	reg mem_ren_exe, mem_ren_mem;
 	reg mem_wen_exe, mem_wen_mem;
+	// reg wb_data_src_exe, wb_data_src_mem, wb_data_src_wb;
 	reg wb_data_src_wb;
-
+	
 	// IF signals
 	wire [31:0] inst_addr_next;
-
+	
 	// ID signals
 	reg [31:0] inst_addr_id;
 	reg [31:0] inst_addr_next_id;
 	reg [4:0] regw_addr_id;
 	wire [4:0] addr_rs, addr_rt, addr_rd;
 	wire [31:0] data_rs, data_rt, data_imm;
-
+	
 	// EXE signals
 	reg [31:0] inst_addr_exe;
 	reg [31:0] inst_addr_next_exe;
@@ -94,7 +100,7 @@ module datapath (
 	reg [31:0] opa_exe, opb_exe;
 	wire [31:0] alu_out_exe;
 	wire rs_rt_equal_exe;
-
+	
 	// MEM signals
 	reg [31:0] inst_addr_mem;
 	reg [31:0] inst_addr_next_mem;
@@ -104,25 +110,20 @@ module datapath (
 	reg [31:0] alu_out_mem;
 	reg [31:0] branch_target_mem;
 	reg rs_rt_equal_mem;
-
+	
 	// WB signals
 	reg wb_wen_wb;
 	reg [31:0] alu_out_wb;
 	reg [31:0] mem_din_wb;
 	reg [4:0] regw_addr_wb;
 	reg [31:0] regw_data_wb;
-
-	// forwarding
 	reg [31:0] data_rs_fwd;
 	reg [31:0] data_rt_fwd;
-	reg [1:0] fwd_a_exe;
-	reg [1:0] fwd_b_exe;
-
 	// debug
 	`ifdef DEBUG
 	wire [31:0] debug_data_reg;
 	reg [31:0] debug_data_signal;
-
+	
 	always @(posedge clk) begin
 		case (debug_addr[4:0])
 			0: debug_data_signal <= inst_addr;
@@ -149,35 +150,43 @@ module datapath (
 			21: debug_data_signal <= mem_dout;
 			22: debug_data_signal <= {27'b0, regw_addr_wb};
 			23: debug_data_signal <= regw_data_wb;
+			24: debug_data_signal <= data_rt_exe;
+			25: debug_data_signal <= alu_out_wb;
 			default: debug_data_signal <= 32'hFFFF_FFFF;
 		endcase
 	end
-
+	
 	assign
 		debug_data = debug_addr[5] ? debug_data_signal : debug_data_reg;
 	`endif
-
+	
 	// IF stage
 	assign
 		inst_addr_next = inst_addr + 4;
-
+	
 	always @(*) begin
 		if_valid = ~if_rst & if_en;
 		inst_ren = ~if_rst;
 	end
-
+	
 	always @(posedge clk) begin
 		if (if_rst) begin
 			inst_addr <= 0;
 		end
 		else if (if_en) begin
-			if (is_branch_mem)
-				inst_addr <= branch_target_mem;
-			else
-				inst_addr <= inst_addr_next;
+			// if (is_branch_mem)
+			// 	inst_addr <= branch_target_mem;
+			// else
+			// 	inst_addr <= inst_addr_next;
+			case (pc_src_ctrl)
+				PC_JUMP: inst_addr <= {inst_addr_next_id[31:28], inst_data_id[25:0], 2'b0};
+				PC_JR: inst_addr <= data_rs_fwd;
+				PC_BRANCH:inst_addr <=inst_addr_next_id + {data_imm[29:0], 2'b0};
+				PC_NEXT: inst_addr <= inst_addr_next;  // will never used
+			endcase
 		end
 	end
-
+	
 	// ID stage
 	always @(posedge clk) begin
 		if (id_rst) begin
@@ -193,13 +202,13 @@ module datapath (
 			inst_addr_next_id <= inst_addr_next;
 		end
 	end
-
+	
 	assign
 		addr_rs = inst_data_id[25:21],
 		addr_rt = inst_data_id[20:16],
 		addr_rd = inst_data_id[15:11],
 		data_imm = imm_ext_ctrl ? {{16{inst_data_id[15]}}, inst_data_id[15:0]} : {16'b0, inst_data_id[15:0]};
-
+	
 	always @(*) begin
 		regw_addr_id = inst_data_id[15:11];
 		case (wb_addr_src_ctrl)
@@ -208,7 +217,7 @@ module datapath (
 			WB_ADDR_LINK: regw_addr_id = GPR_RA;
 		endcase
 	end
-
+	
 	regfile REGFILE (
 		.clk(clk),
 		`ifdef DEBUG
@@ -223,7 +232,11 @@ module datapath (
 		.addr_w(regw_addr_wb),
 		.data_w(regw_data_wb)
 		);
+		
 
+
+	reg [1:0] fwd_a_exe;
+	reg [1:0] fwd_b_exe;
 	// EXE stage
 	always @(posedge clk) begin
 		if (exe_rst) begin
@@ -235,14 +248,14 @@ module datapath (
 			pc_src_exe <= 0;
 			exe_a_src_exe <= 0;
 			exe_b_src_exe <= 0;
-			// data_rs_exe <= 0;
-			// data_rt_exe <= 0;
 			data_imm_exe <= 0;
 			exe_alu_oper_exe <= 0;
 			mem_ren_exe <= 0;
 			mem_wen_exe <= 0;
 			wb_data_src_exe <= 0;
 			wb_wen_exe <= 0;
+
+			fwd_m_exe<=0;
 		end
 		else if (exe_en) begin
 			exe_valid <= id_valid;
@@ -253,30 +266,48 @@ module datapath (
 			pc_src_exe <= pc_src_ctrl;
 			exe_a_src_exe <= exe_a_src_ctrl;
 			exe_b_src_exe <= exe_b_src_ctrl;
-			// data_rs_exe <= data_rs;
-			// data_rt_exe <= data_rt;
+			// fwd_a_exe <= exe_fwd_a_ctrl;
+			// fwd_b_exe <= exe_fwd_b_ctrl;
+			// data_rs_fwd <= data_rs;
+			// data_rt_fwd <= data_rt;
+			data_rs_exe<=data_rs_fwd;
+			data_rt_exe<=data_rt_fwd;
 			data_imm_exe <= data_imm;
 			exe_alu_oper_exe <= exe_alu_oper_ctrl;
 			mem_ren_exe <= mem_ren_ctrl;
 			mem_wen_exe <= mem_wen_ctrl;
 			wb_data_src_exe <= wb_data_src_ctrl;
 			wb_wen_exe <= wb_wen_ctrl;
-			
-			// forwarding
-			fwd_a_exe <= exe_fwd_a_ctrl;
-			fwd_b_exe <= exe_fwd_b_ctrl;
-			data_rs_fwd <= data_rs;
-			data_rt_fwd <= data_rt;
+			fwd_m_exe<=fwd_m;
+
 		end
 	end
 
+
+	always @(*) begin
+			case(exe_fwd_a_ctrl)
+				FWD_NO:		 	data_rs_fwd<=data_rs;
+				FWD_ALU_EXE:	data_rs_fwd<=alu_out_exe;
+				FWD_ALU_MEM:	data_rs_fwd<=alu_out_mem;
+				FWD_MEM: 		data_rs_fwd<=mem_din;
+			endcase
+
+			case(exe_fwd_b_ctrl)
+				FWD_NO:		 	data_rt_fwd<=data_rt;
+				FWD_ALU_EXE:	data_rt_fwd<=alu_out_exe;
+				FWD_ALU_MEM:	data_rt_fwd<=alu_out_mem;
+				FWD_MEM: 		data_rt_fwd<=mem_din;
+			endcase
+	end
+	assign rs_rt_equal = (data_rs_fwd==data_rt_fwd);
 	always @(*) begin
 		is_branch_exe <= (pc_src_exe != PC_NEXT);
-	end
 
+	end
+	
 	assign
 		rs_rt_equal_exe = (data_rs_exe == data_rt_exe);
-
+	
 	always @(*) begin
 		opa_exe = data_rs_exe;
 		opb_exe = data_rt_exe;
@@ -289,17 +320,17 @@ module datapath (
 			EXE_B_RT: opb_exe = data_rt_exe;
 			EXE_B_IMM: opb_exe = data_imm_exe;
 			EXE_B_LINK: opb_exe = 32'h0;  // linked address is the next one of current instruction
-			EXE_B_BRANCH: opb_exe = {data_imm_exe[29:0], 2'b00};
+			EXE_B_BRANCH: opb_exe = {data_imm_exe,2'b00};
 		endcase
 	end
-
+	
 	alu ALU (
 		.a(opa_exe),
 		.b(opb_exe),
 		.oper(exe_alu_oper_exe),
 		.result(alu_out_exe)
 		);
-
+	
 	// MEM stage
 	always @(posedge clk) begin
 		if (mem_rst) begin
@@ -317,6 +348,7 @@ module datapath (
 			wb_data_src_mem <= 0;
 			wb_wen_mem <= 0;
 			rs_rt_equal_mem <= 0;
+			fwd_m_mem<=0;
 		end
 		else if (mem_en) begin
 			mem_valid <= exe_valid;
@@ -333,29 +365,31 @@ module datapath (
 			wb_data_src_mem <= wb_data_src_exe;
 			wb_wen_mem <= wb_wen_exe;
 			rs_rt_equal_mem <= rs_rt_equal_exe;
+			fwd_m_mem<=fwd_m_exe;
 		end
 	end
-
+	
 	always @(*) begin
 		is_branch_mem <= (pc_src_mem != PC_NEXT);
 	end
-
+	
 	always @(*) begin
-		case (pc_src_mem)
-			PC_JUMP: branch_target_mem <= {inst_addr_mem[31:28], inst_data_mem[25:0], 2'b0};
+		case (pc_src_ctrl)
+			PC_JUMP: branch_target_mem <= {inst_addr_next_mem[31:28], inst_data_mem[25:0], 2'b0};
 			PC_JR: branch_target_mem <= data_rs_mem;
-			PC_BEQ: branch_target_mem <= rs_rt_equal_mem ? alu_out_mem : inst_addr_next_mem;
-			PC_BNE: branch_target_mem <= rs_rt_equal_mem ? inst_addr_next_mem : alu_out_mem;
+			// PC_BEQ: branch_target_mem <= rs_rt_equal_mem ? alu_out_mem : inst_addr_next_mem;
+			// PC_BNE: branch_target_mem <= rs_rt_equal_mem ? inst_addr_next_mem : alu_out_mem;
+			PC_BRANCH:branch_target_mem <=alu_out_mem;
 			default: branch_target_mem <= inst_addr_next_mem;  // will never used
 		endcase
 	end
-
+	
 	assign
 		mem_ren = mem_ren_mem,
 		mem_wen = mem_wen_mem,
 		mem_addr = alu_out_mem,
-		mem_dout = data_rt_mem;
-
+		mem_dout = fwd_m_mem?regw_data_wb:data_rt_mem;
+	
 	// WB stage
 	always @(posedge clk) begin
 		if (wb_rst) begin
@@ -375,31 +409,13 @@ module datapath (
 			mem_din_wb <= mem_din;
 		end
 	end
-
+	
 	always @(*) begin
 		regw_data_wb = alu_out_wb;
 		case (wb_data_src_wb)
 			WB_DATA_ALU: regw_data_wb = alu_out_wb;
 			WB_DATA_MEM: regw_data_wb = mem_din_wb;
 		endcase
-	end
-
-	always @(*) begin
-		if (exe_en) begin
-			case (fwd_a_exe)
-				FWD_ALU_EXE: data_rs_exe <= alu_out_mem;
-				FWD_WB_MEM: data_rs_exe <= regw_data_wb;
-				FWD_MEM: data_rs_exe <= mem_din;
-				default: data_rs_exe <= data_rs_fwd;
-			endcase
-
-			case (fwd_b_exe)
-				FWD_ALU_EXE: data_rt_exe <= alu_out_mem;
-				FWD_WB_MEM: data_rt_exe <= regw_data_wb;
-				FWD_MEM: data_rt_exe <= mem_din;
-				default: data_rt_exe <= data_rt_fwd;
-			endcase
-		end
 	end
 
 endmodule
