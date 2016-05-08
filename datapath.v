@@ -65,8 +65,8 @@ module datapath (
 	input wire [1:0] exe_fwd_a_ctrl,
 	input wire [1:0] exe_fwd_b_ctrl,
 	input wire fwd_m,
-	output wire rs_rt_equal
-	// , output reg [31:0] regw_data_wb
+	output wire rs_rt_equal,
+	input wire sign_ctrl
 	
 	);
 	
@@ -81,6 +81,7 @@ module datapath (
 	reg mem_wen_exe, mem_wen_mem;
 	// reg wb_data_src_exe, wb_data_src_mem, wb_data_src_wb;
 	reg wb_data_src_wb;
+	reg sign_exe;
 	
 	// IF signals
 	wire [31:0] inst_addr_next;
@@ -90,13 +91,13 @@ module datapath (
 	reg [31:0] inst_addr_next_id;
 	reg [4:0] regw_addr_id;
 	wire [4:0] addr_rs, addr_rt, addr_rd;
-	wire [31:0] data_rs, data_rt, data_imm;
+	wire [31:0] data_rs, data_rt, data_imm, data_sa;
 	
 	// EXE signals
 	reg [31:0] inst_addr_exe;
 	reg [31:0] inst_addr_next_exe;
 	reg [31:0] inst_data_exe;
-	reg [31:0] data_rs_exe, data_rt_exe, data_imm_exe;
+	reg [31:0] data_rs_exe, data_rt_exe, data_imm_exe, data_sa_exe;
 	reg [31:0] opa_exe, opb_exe;
 	wire [31:0] alu_out_exe;
 	wire rs_rt_equal_exe;
@@ -207,7 +208,8 @@ module datapath (
 		addr_rs = inst_data_id[25:21],
 		addr_rt = inst_data_id[20:16],
 		addr_rd = inst_data_id[15:11],
-		data_imm = imm_ext_ctrl ? {{16{inst_data_id[15]}}, inst_data_id[15:0]} : {16'b0, inst_data_id[15:0]};
+		data_imm = imm_ext_ctrl ? {{16{inst_data_id[15]}}, inst_data_id[15:0]} : {16'b0, inst_data_id[15:0]},
+		data_sa = {27'b0, inst_data_id[10:6]};
 	
 	always @(*) begin
 		regw_addr_id = inst_data_id[15:11];
@@ -249,13 +251,14 @@ module datapath (
 			exe_a_src_exe <= 0;
 			exe_b_src_exe <= 0;
 			data_imm_exe <= 0;
+			data_sa_exe <= 0;
 			exe_alu_oper_exe <= 0;
 			mem_ren_exe <= 0;
 			mem_wen_exe <= 0;
 			wb_data_src_exe <= 0;
 			wb_wen_exe <= 0;
-
-			fwd_m_exe<=0;
+			fwd_m_exe <= 0;
+			sign_exe <= 0;
 		end
 		else if (exe_en) begin
 			exe_valid <= id_valid;
@@ -270,33 +273,34 @@ module datapath (
 			// fwd_b_exe <= exe_fwd_b_ctrl;
 			// data_rs_fwd <= data_rs;
 			// data_rt_fwd <= data_rt;
-			data_rs_exe<=data_rs_fwd;
-			data_rt_exe<=data_rt_fwd;
+			data_rs_exe <= data_rs_fwd;
+			data_rt_exe <= data_rt_fwd;
 			data_imm_exe <= data_imm;
+			data_sa_exe <= data_sa;
 			exe_alu_oper_exe <= exe_alu_oper_ctrl;
 			mem_ren_exe <= mem_ren_ctrl;
 			mem_wen_exe <= mem_wen_ctrl;
 			wb_data_src_exe <= wb_data_src_ctrl;
 			wb_wen_exe <= wb_wen_ctrl;
-			fwd_m_exe<=fwd_m;
-
+			fwd_m_exe <= fwd_m;
+			sign_exe <= sign_ctrl;
 		end
 	end
 
 
 	always @(*) begin
 		case(exe_fwd_a_ctrl)
-			FWD_NO:		 	data_rs_fwd<=data_rs;
-			FWD_ALU_EXE:	data_rs_fwd<=alu_out_exe;
-			FWD_ALU_MEM:	data_rs_fwd<=alu_out_mem;
-			FWD_MEM: 		data_rs_fwd<=mem_din;
+			FWD_NO:		 	data_rs_fwd <= data_rs;
+			FWD_ALU_EXE:	data_rs_fwd <= alu_out_exe;
+			FWD_ALU_MEM:	data_rs_fwd <= alu_out_mem;
+			FWD_MEM: 		data_rs_fwd <= mem_din;
 		endcase
 
 		case(exe_fwd_b_ctrl)
-			FWD_NO:		 	data_rt_fwd<=data_rt;
-			FWD_ALU_EXE:	data_rt_fwd<=alu_out_exe;
-			FWD_ALU_MEM:	data_rt_fwd<=alu_out_mem;
-			FWD_MEM: 		data_rt_fwd<=mem_din;
+			FWD_NO:		 	data_rt_fwd <= data_rt;
+			FWD_ALU_EXE:	data_rt_fwd <= alu_out_exe;
+			FWD_ALU_MEM:	data_rt_fwd <= alu_out_mem;
+			FWD_MEM: 		data_rt_fwd <= mem_din;
 		endcase
 	end
 	assign rs_rt_equal = (data_rs_fwd==data_rt_fwd);
@@ -313,6 +317,7 @@ module datapath (
 		opb_exe = data_rt_exe;
 		case (exe_a_src_exe)
 			EXE_A_RS: opa_exe = data_rs_exe;
+			EXE_A_SA: opa_exe = data_sa_exe;
 			EXE_A_LINK: opa_exe = inst_addr_next_exe;
 			EXE_A_BRANCH: opa_exe = inst_addr_next_exe;
 		endcase
@@ -328,6 +333,7 @@ module datapath (
 		.a(opa_exe),
 		.b(opb_exe),
 		.oper(exe_alu_oper_exe),
+		.sign(sign_exe),
 		.result(alu_out_exe)
 		);
 	

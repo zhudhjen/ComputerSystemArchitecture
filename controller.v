@@ -56,7 +56,8 @@ module controller (/*AUTOARG*/
 	output reg [1:0]exe_fwd_a_ctrl,
 	output reg [1:0]exe_fwd_b_ctrl,
 	output reg fwd_m,
-	input wire rs_rt_equal
+	input wire rs_rt_equal,
+	output reg sign
 	);
 	
 	`include "mips_define.vh"
@@ -77,6 +78,7 @@ module controller (/*AUTOARG*/
 		wb_wen = 0;
 		rs_used = 0;
 		rt_used = 0;
+		sign = 0;
 		unrecognized = 0;
 		case (inst[31:26])
 			INST_R: begin
@@ -93,7 +95,23 @@ module controller (/*AUTOARG*/
 						rs_used = 1;
 						rt_used = 1;
 					end
+					R_FUNC_ADDU: begin
+						exe_alu_oper = EXE_ALU_ADD;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 1;
+						rt_used = 1;
+					end
 					R_FUNC_SUB: begin
+						exe_alu_oper = EXE_ALU_SUB;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 1;
+						rt_used = 1;
+					end
+					R_FUNC_SUBU: begin
 						exe_alu_oper = EXE_ALU_SUB;
 						wb_addr_src = WB_ADDR_RD;
 						wb_data_src = WB_DATA_ALU;
@@ -117,6 +135,22 @@ module controller (/*AUTOARG*/
 						rs_used = 1;
 						rt_used = 1;
 					end
+					R_FUNC_XOR: begin
+						exe_alu_oper = EXE_ALU_XOR;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 1;
+						rt_used = 1;
+					end
+					R_FUNC_NOR: begin
+						exe_alu_oper = EXE_ALU_NOR;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 1;
+						rt_used = 1;
+					end
 					R_FUNC_SLT: begin
 						exe_alu_oper = EXE_ALU_SLT;
 						wb_addr_src = WB_ADDR_RD;
@@ -124,6 +158,68 @@ module controller (/*AUTOARG*/
 						wb_wen = 1;
 						rs_used = 1;
 						rt_used = 1;
+						sign = 1;
+					end
+					R_FUNC_SLTU: begin
+						exe_alu_oper = EXE_ALU_SLT;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 1;
+						rt_used = 1;
+					end
+					R_FUNC_SLL: begin
+						exe_alu_oper = EXE_ALU_SL;
+						exe_a_src = EXE_A_SA;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 0;
+						rt_used = 1;
+					end
+					R_FUNC_SRL: begin
+						exe_alu_oper = EXE_ALU_SR;
+						exe_a_src = EXE_A_SA;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 0;
+						rt_used = 1;
+					end
+					R_FUNC_SRA: begin
+						exe_alu_oper = EXE_ALU_SR;
+						exe_a_src = EXE_A_SA;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 0;
+						rt_used = 1;
+						sign = 1;
+					end
+					R_FUNC_SLLV: begin
+						exe_alu_oper = EXE_ALU_SL;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 1;
+						rt_used = 1;
+					end
+					R_FUNC_SRLV: begin
+						exe_alu_oper = EXE_ALU_SR;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 1;
+						rt_used = 1;
+					end
+					R_FUNC_SRAV: begin
+						exe_alu_oper = EXE_ALU_SR;
+						wb_addr_src = WB_ADDR_RD;
+						wb_data_src = WB_DATA_ALU;
+						wb_wen = 1;
+						rs_used = 1;
+						rt_used = 1;
+						sign = 1;
 					end
 					default: begin
 						unrecognized = 1;
@@ -169,6 +265,15 @@ module controller (/*AUTOARG*/
 				wb_wen = 1;
 				rs_used = 1;
 			end
+			INST_ADDIU: begin
+				imm_ext = 1;
+				exe_b_src = EXE_B_IMM;
+				exe_alu_oper = EXE_ALU_ADD;
+				wb_addr_src = WB_ADDR_RT;
+				wb_data_src = WB_DATA_ALU;
+				wb_wen = 1;
+				rs_used = 1;
+			end
 			INST_ANDI: begin
 				imm_ext = 0;
 				exe_b_src = EXE_B_IMM;
@@ -187,6 +292,23 @@ module controller (/*AUTOARG*/
 				wb_wen = 1;
 				rs_used = 1;
 			end
+			INST_XORI: begin
+				imm_ext = 0;
+				exe_b_src = EXE_B_IMM;
+				exe_alu_oper = EXE_ALU_XOR;
+				wb_addr_src = WB_ADDR_RT;
+				wb_data_src = WB_DATA_ALU;
+				wb_wen = 1;
+				rs_used = 1;
+			end
+			INST_LUI: begin
+				imm_ext = 0;
+				exe_b_src = EXE_B_IMM;
+				exe_alu_oper = EXE_ALU_LUI;
+				wb_addr_src = WB_ADDR_RT;
+				wb_data_src = WB_DATA_ALU;
+				wb_wen = 1;
+			end
 			INST_LW: begin
 				imm_ext = 1;
 				exe_b_src = EXE_B_IMM;
@@ -204,6 +326,25 @@ module controller (/*AUTOARG*/
 				mem_wen = 1;
 				rs_used = 1;
 				rt_used = 1;
+			end
+			INST_SLTI: begin
+				imm_ext = 1;
+				exe_b_src = EXE_B_IMM;
+				exe_alu_oper = EXE_ALU_SLT;
+				wb_addr_src = WB_ADDR_RT;
+				wb_data_src = WB_DATA_ALU;
+				wb_wen = 1;
+				rs_used = 1;
+				sign = 1;
+			end
+			INST_SLTIU: begin
+				imm_ext = 0;
+				exe_b_src = EXE_B_IMM;
+				exe_alu_oper = EXE_ALU_SLT;
+				wb_addr_src = WB_ADDR_RT;
+				wb_data_src = WB_DATA_ALU;
+				wb_wen = 1;
+				rs_used = 1;
 			end
 			default: begin
 				unrecognized = 1;
